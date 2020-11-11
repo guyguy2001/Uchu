@@ -319,6 +319,8 @@ namespace Uchu.World
                 1
             );
             
+            Logger.Information("[55%] Instantiated player");
+            
             // Setup layers
             instance.Layer = StandardLayer.Player;
             
@@ -337,8 +339,11 @@ namespace Uchu.World
             // Causes a major performance penalty, therefore disabled
             // instance.Perspective.AddFilter<FlagFilter>();
             instance.Perspective.AddFilter<ExcludeFilter>();
+            Logger.Information("[55%] Added filters");
+            
             instance.Connection = connection;
             
+            Logger.Information("[55%] Adding components");
             // Add serialized components
             var controllablePhysics = instance.AddComponent<ControllablePhysicsComponent>();
             instance.AddComponent<DestructibleComponent>();
@@ -346,14 +351,20 @@ namespace Uchu.World
             var characterComponent = instance.AddComponent<CharacterComponent>();
             var inventory = instance.AddComponent<InventoryComponent>();
             
+            Logger.Information("[55%] Added controllable physics, stats, character and inventory component");
+            
             instance.AddComponent<LuaScriptComponent>();
             instance.AddComponent<SkillComponent>();
             instance.AddComponent<RendererComponent>();
             instance.AddComponent<PossessableOccupantComponent>();
             
+            Logger.Information("[55%] Added lua, skill, renderer and possessable occupant component");
+            
             controllablePhysics.HasPosition = true;
             stats.HasStats = true;
             characterComponent.Character = character;
+            
+            Logger.Information("[55%] Filling inventory");
             
             // Equip items
             await using (var ctx = new UchuContext())
@@ -374,11 +385,15 @@ namespace Uchu.World
                 }
             }
             
+            Logger.Information("[55%] Filled inventory");
+            
             // Server Components
             instance.AddComponent<MissionInventoryComponent>();
             instance.AddComponent<InventoryManagerComponent>();
             instance.AddComponent<TeamPlayerComponent>();
             instance.AddComponent<ModularBuilderComponent>();
+            
+            Logger.Information("[55%] Added mission inventory, inventory manager, team player and moduler builder component");
             
             // Physics
             var physics = instance.AddComponent<PhysicsComponent>();
@@ -389,19 +404,27 @@ namespace Uchu.World
                 instance.Transform.Rotation,
                 new Vector2(2, 4)
             );
-
+            
+            Logger.Information("[55%] Added physics component");
             physics.SetPhysics(box);
+            Logger.Information("[55%] Setup physics component");
             
             instance.Listen(physics.OnEnter, instance.OnEnterCollision);
             instance.Listen(physics.OnCollision, instance.OnStayCollision);
             instance.Listen(physics.OnLeave, instance.OnLeaveCollision);
             
+            Logger.Information("[55%] Added physics listeners");
+            
             // Register player gameobject in zone
             Start(instance);
+            Logger.Information("[55%] Started player");
+            
             Construct(instance);
+            Logger.Information("[55%] Constructed player");
             
             // Register player as an active in zone
             await zone.RegisterPlayer(instance);
+            Logger.Information("[55%] Registered player");
 
             return instance;
         }
