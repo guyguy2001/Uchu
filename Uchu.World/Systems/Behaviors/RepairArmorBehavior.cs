@@ -13,10 +13,11 @@ namespace Uchu.World.Systems.Behaviors
             Armor = await GetParameter<int>("armor");
         }
 
-        public override void ExecuteStart(BehaviorExecutionParameters parameters)
+        public override Task ExecuteStart(BehaviorExecutionParameters parameters)
         {
             if (parameters.BranchContext.Target.TryGetComponent<DestroyableComponent>(out var stats))
                 stats.Armor = (uint) ((int) stats.Armor + Armor);
+            return Task.CompletedTask;
         }
     }
 }

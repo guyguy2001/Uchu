@@ -1,16 +1,10 @@
 using System.Threading.Tasks;
-using RakDotNet.IO;
 
 namespace Uchu.World.Systems.Behaviors
 {
     public class DurationBehaviorExecutionParameters : BehaviorExecutionParameters
     {
         public BehaviorExecutionParameters ActionExecutionParameters { get; set; }
-
-        public DurationBehaviorExecutionParameters(ExecutionContext context, ExecutionBranchContext branchContext) 
-            : base(context, branchContext)
-        {
-        }
     }
     public class DurationBehavior : BehaviorBase<DurationBehaviorExecutionParameters>
     {
@@ -30,9 +24,9 @@ namespace Uchu.World.Systems.Behaviors
             ActionDuration = (int) duration.Value;
         }
 
-        protected override void DeserializeStart(BitReader reader, DurationBehaviorExecutionParameters parameters)
+        protected override void DeserializeStart(DurationBehaviorExecutionParameters parameters)
         {
-            parameters.ActionExecutionParameters = Action.DeserializeStart(reader, parameters.Context, 
+            parameters.ActionExecutionParameters = Action.DeserializeStart(parameters.Context, 
                 new ExecutionBranchContext()
                 {
                     Target = parameters.BranchContext.Target,
@@ -40,14 +34,14 @@ namespace Uchu.World.Systems.Behaviors
                 });
         }
 
-        protected override void ExecuteStart(DurationBehaviorExecutionParameters behaviorExecutionParameters)
+        protected override async Task ExecuteStart(DurationBehaviorExecutionParameters behaviorExecutionParameters)
         {
-            Action.ExecuteStart(behaviorExecutionParameters.ActionExecutionParameters);
+            await Action.ExecuteStart(behaviorExecutionParameters.ActionExecutionParameters);
         }
 
-        protected override void SerializeStart(BitWriter writer, DurationBehaviorExecutionParameters parameters)
+        protected override void SerializeStart(DurationBehaviorExecutionParameters parameters)
         {
-            parameters.ActionExecutionParameters = Action.SerializeStart(writer, parameters.NpcContext, 
+            parameters.ActionExecutionParameters = Action.SerializeStart(parameters.NpcContext, 
                 new ExecutionBranchContext()
                 {
                     Target = parameters.BranchContext.Target,

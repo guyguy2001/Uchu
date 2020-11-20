@@ -37,6 +37,7 @@ namespace Uchu.World
         protected SkillComponent()
         {
             ActiveBehaviors = new Dictionary<BehaviorSlot, uint>();
+
             HandledSkills = new Dictionary<uint, ExecutionContext>();
             
             Listen(OnStart, async () =>
@@ -59,8 +60,7 @@ namespace Uchu.World
 
                 await SetupStandardSkills();
                 
-                if (!(GameObject is Player))
-                    return;
+                if (!(GameObject is Player)) return;
 
                 ActiveBehaviors[BehaviorSlot.Primary] = 1;
             });
@@ -172,7 +172,7 @@ namespace Uchu.World
             
             var tree = await BehaviorTree.FromLotAsync(item);
             tree.Deserialize(GameObject, new BitReader(new MemoryStream()));
-            tree.Mount();
+            await tree.MountAsync();
 
             if (GameObject.TryGetComponent<MissionInventoryComponent>(out var missionInventory))
             {
@@ -193,15 +193,9 @@ namespace Uchu.World
             
             var tree = await BehaviorTree.FromLotAsync(item);
             tree.Deserialize(GameObject, new BitReader(new MemoryStream()));
-            tree.Dismantle();
+            await tree.DismantleAsync();
         }
 
-        /// <summary>
-        /// Calculates a skill by serializing it
-        /// </summary>
-        /// <param name="skillId">The skill Id to serialize</param>
-        /// <param name="precalculate">Precalculate the skill, exits execution but adds behavior to cache</param>
-        /// <returns>The skill time in milliseconds</returns>
         public async Task<float> CalculateSkillAsync(int skillId, bool precalculate = false)
         {
             var tree = await BehaviorTree.FromSkillAsync(skillId);
@@ -227,8 +221,8 @@ namespace Uchu.World
                 OriginatorRotation = GameObject.Transform.Rotation
             });
 
-            tree.Execute();
-            return context.SkillTime * 1000;
+            await tree.ExecuteAsync();
+            return context.SkillTime;
         }
 
         public async Task<float> CalculateSkillAsync(int skillId, GameObject target)
@@ -252,7 +246,7 @@ namespace Uchu.World
                 OriginatorRotation = GameObject.Transform.Rotation
             });
 
-            tree.Execute();
+            await tree.ExecuteAsync();
 
             return context.SkillTime;
         }
@@ -308,7 +302,7 @@ namespace Uchu.World
                     UsedMouse = message.UsedMouse
                 }, GameObject as Player);
 
-                tree.Execute();
+                await tree.ExecuteAsync();
                 
                 if (GameObject.TryGetComponent<DestroyableComponent>(out var stats))
                 {
@@ -325,7 +319,7 @@ namespace Uchu.World
             );
         }
 
-        public void SyncUserSkillAsync(SyncSkillMessage message)
+        public async Task SyncUserSkillAsync(SyncSkillMessage message)
         {
             var stream = new MemoryStream(message.Content);
             using var reader = new BitReader(stream, leaveOpen: true);
@@ -336,7 +330,7 @@ namespace Uchu.World
 
             if (found)
             {
-                behavior.SyncAsync(message.BehaviorHandle, reader);
+                await behavior.SyncAsync(message.BehaviorHandle, reader);
             }
 
             if (message.Done)

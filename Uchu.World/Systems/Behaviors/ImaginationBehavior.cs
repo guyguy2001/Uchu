@@ -13,10 +13,11 @@ namespace Uchu.World.Systems.Behaviors
             Imagination = await GetParameter<int>("imagination");
         }
 
-        public override void ExecuteStart(BehaviorExecutionParameters parameters)
+        public override Task ExecuteStart(BehaviorExecutionParameters parameters)
         {
             if (parameters.BranchContext.Target.TryGetComponent<DestroyableComponent>(out var stats))
                 stats.Imagination = (uint) ((int) stats.Imagination + Imagination);
+            return Task.CompletedTask;
         }
     }
 }

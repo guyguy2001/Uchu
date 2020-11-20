@@ -27,7 +27,7 @@ namespace Uchu.World.Handlers.GameMessages
         {
             try
             {
-                player.GetComponent<SkillComponent>().SyncUserSkillAsync(message);
+                await player.GetComponent<SkillComponent>().SyncUserSkillAsync(message);
             }
             catch (Exception e)
             {

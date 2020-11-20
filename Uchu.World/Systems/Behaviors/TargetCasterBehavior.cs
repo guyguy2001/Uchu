@@ -1,16 +1,10 @@
 using System.Threading.Tasks;
-using RakDotNet.IO;
 
 namespace Uchu.World.Systems.Behaviors
 {
     public class TargetCasterBehaviorExecutionParameters : BehaviorExecutionParameters
     {
         public BehaviorExecutionParameters Parameters { get; set; }
-
-        public TargetCasterBehaviorExecutionParameters(ExecutionContext context, ExecutionBranchContext branchContext) 
-            : base(context, branchContext)
-        {
-        }
     }
     public class TargetCasterBehavior : BehaviorBase<TargetCasterBehaviorExecutionParameters>
     {
@@ -23,14 +17,14 @@ namespace Uchu.World.Systems.Behaviors
             Action = await GetBehavior("action");
         }
 
-        protected override void DeserializeStart(BitReader reader, TargetCasterBehaviorExecutionParameters parameters)
+        protected override void DeserializeStart(TargetCasterBehaviorExecutionParameters parameters)
         {
-            parameters.Parameters = Action.DeserializeStart(reader, parameters.Context, parameters.BranchContext);
+            parameters.Parameters = Action.DeserializeStart(parameters.Context, parameters.BranchContext);
         }
 
-        protected override void ExecuteStart(TargetCasterBehaviorExecutionParameters parameters)
+        protected override async Task ExecuteStart(TargetCasterBehaviorExecutionParameters parameters)
         {
-            Action.ExecuteStart(parameters.Parameters);
+            await Action.ExecuteStart(parameters.Parameters);
         }
     }
 }

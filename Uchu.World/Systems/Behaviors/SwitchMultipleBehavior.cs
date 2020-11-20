@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using RakDotNet.IO;
 
 namespace Uchu.World.Systems.Behaviors
 {
@@ -10,13 +9,7 @@ namespace Uchu.World.Systems.Behaviors
         public float Value { get; set; }
         public BehaviorExecutionParameters Parameters { get; set; }
         public BehaviorBase Behavior { get; set; }
-
-        public SwitchMultipleBehaviorExecutionParameters(ExecutionContext context, ExecutionBranchContext branchContext) 
-            : base(context, branchContext)
-        {
-        }
     }
-    
     public class SwitchMultipleBehavior : BehaviorBase<SwitchMultipleBehaviorExecutionParameters>
     {
         public override BehaviorTemplateId Id => BehaviorTemplateId.SwitchMultiple;
@@ -43,9 +36,9 @@ namespace Uchu.World.Systems.Behaviors
             }
         }
 
-        protected override void DeserializeStart(BitReader reader, SwitchMultipleBehaviorExecutionParameters parameters)
+        protected override void DeserializeStart(SwitchMultipleBehaviorExecutionParameters parameters)
         {
-            parameters.Value = reader.Read<float>();
+            parameters.Value = parameters.Context.Reader.Read<float>();
 
             var defaultValue = Behaviors.ToArray()[0].Value;
             if (parameters.Value <= defaultValue)
@@ -56,15 +49,15 @@ namespace Uchu.World.Systems.Behaviors
                 if (parameters.Value < mark)
                     continue;
                 parameters.Behavior = behavior;
-                parameters.Parameters = parameters.Behavior.DeserializeStart(reader, parameters.Context,
+                parameters.Parameters = parameters.Behavior.DeserializeStart(parameters.Context,
                     parameters.BranchContext);
                 break;
             }
         }
 
-        protected override void ExecuteStart(SwitchMultipleBehaviorExecutionParameters parameters)
+        protected override async Task ExecuteStart(SwitchMultipleBehaviorExecutionParameters parameters)
         {
-            parameters.Behavior.ExecuteStart(parameters.Parameters);
+            await parameters.Behavior.ExecuteStart(parameters.Parameters);
         }
     }
 }

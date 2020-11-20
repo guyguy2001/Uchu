@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using RakDotNet.IO;
 using Uchu.Core;
 
 namespace Uchu.World.Systems.Behaviors
@@ -10,11 +9,6 @@ namespace Uchu.World.Systems.Behaviors
         public BehaviorExecutionParameters BehaviorExecutionParameters { get; set; }
         public BehaviorBase ToExecute { get; set; }
         public MovementType MovementType { get; set; }
-
-        public MovementSwitchBehaviorExecutionParameters(ExecutionContext context, ExecutionBranchContext branchContext)
-            : base(context, branchContext)
-        {
-        }
     }
     public class MovementSwitchBehavior : BehaviorBase<MovementSwitchBehaviorExecutionParameters>
     {
@@ -39,14 +33,13 @@ namespace Uchu.World.Systems.Behaviors
             MovingBehavior = await GetBehavior("moving_action");
         }
 
-        protected override void DeserializeStart(BitReader reader, MovementSwitchBehaviorExecutionParameters parameters)
+        protected override void DeserializeStart(MovementSwitchBehaviorExecutionParameters parameters)
         {
-            parameters.MovementType = (MovementType)reader.Read<uint>();
+            parameters.MovementType = (MovementType) parameters.Context.Reader.Read<uint>();
             switch (parameters.MovementType)
             {
                 case MovementType.Moving:
-                    // Should be handled as ground behavior
-                    parameters.ToExecute = GroundBehavior;
+                    parameters.ToExecute = MovingBehavior;
                     break;
                 case MovementType.Ground:
                     parameters.ToExecute = GroundBehavior;
@@ -67,20 +60,21 @@ namespace Uchu.World.Systems.Behaviors
                     parameters.ToExecute = JetpackBehavior;
                     break;
                 case MovementType.Unknown:
-                    // Should be handled as ground behavior
-                    parameters.ToExecute = GroundBehavior;
-                    break;
+                    Logger.Debug("Received movement switch type unknown");
+                    return;
                 default:
                     throw new Exception($"Invalid {nameof(MovementType)}! Got {parameters.MovementType}!");
             }
             
-            parameters.BehaviorExecutionParameters = parameters.ToExecute.DeserializeStart(reader, parameters.Context, 
+            parameters.BehaviorExecutionParameters = parameters.ToExecute.DeserializeStart(parameters.Context, 
                 parameters.BranchContext);
         }
 
-        protected override void ExecuteStart(MovementSwitchBehaviorExecutionParameters parameters)
+        protected override async Task ExecuteStart(MovementSwitchBehaviorExecutionParameters parameters)
         {
-            parameters.ToExecute?.ExecuteStart(parameters.BehaviorExecutionParameters);
+            if (parameters.ToExecute == null)
+                return;    
+            await parameters.ToExecute.ExecuteStart(parameters.BehaviorExecutionParameters);
         }
     }
 }

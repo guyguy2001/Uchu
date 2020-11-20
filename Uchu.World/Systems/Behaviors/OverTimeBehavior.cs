@@ -1,16 +1,10 @@
 using System.Threading.Tasks;
-using RakDotNet.IO;
 
 namespace Uchu.World.Systems.Behaviors
 {
     public class OverTimeBehaviorExecutionParameters : BehaviorExecutionParameters
     {
-        public BehaviorExecutionParameters Parameters { get; set; }
-
-        public OverTimeBehaviorExecutionParameters(ExecutionContext context, ExecutionBranchContext branchContext) 
-            : base(context, branchContext)
-        {
-        }
+        public BehaviorExecutionParameters BehaviorExecutionParameters { get; set; }
     }
     public class OverTimeBehavior : BehaviorBase<OverTimeBehaviorExecutionParameters>
     {
@@ -23,15 +17,15 @@ namespace Uchu.World.Systems.Behaviors
             Action = await GetBehavior("action");
         }
 
-        protected override void DeserializeStart(BitReader reader, OverTimeBehaviorExecutionParameters parameters)
+        protected override void DeserializeStart(OverTimeBehaviorExecutionParameters parameters)
         {
-            parameters.Parameters = Action.DeserializeStart(reader, parameters.Context,
+            parameters.BehaviorExecutionParameters = Action.DeserializeStart(parameters.Context,
                 parameters.BranchContext);
         }
 
-        protected override void ExecuteStart(OverTimeBehaviorExecutionParameters parameters)
+        protected override async Task ExecuteStart(OverTimeBehaviorExecutionParameters parameters)
         {
-            Action.ExecuteStart(parameters.Parameters);
+            await Action.ExecuteStart(parameters.BehaviorExecutionParameters);
         }
     }
 }

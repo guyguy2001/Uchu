@@ -18,15 +18,7 @@ namespace Uchu.World
 
         public override ComponentId Id => ComponentId.BaseCombatAIComponent;
 
-        /// <summary>
-        /// Cooldown that's set after a skill is executed, equal to <c>Cooldown</c> but not decremented on tick
-        /// </summary>
-        private float FrozenCooldown { get; set; }
-        
-        /// <summary>
-        /// Cooldown that's set after a skill is executed, this will be decremented on each tick
-        /// </summary>
-        private float Cooldown { get; set; }
+        public float Cooldown { get; set; }
 
         public bool AbilityDowntime { get; set; }
 
@@ -51,8 +43,11 @@ namespace Uchu.World
                 Listen(GameObject.OnStart, async () =>
                 {
                     SkillComponent = GameObject.GetComponent<SkillComponent>();
+
                     DestructibleComponent = GameObject.GetComponent<DestructibleComponent>();
+
                     QuickBuildComponent = GameObject.GetComponent<QuickBuildComponent>();
+
                     Stats = GameObject.GetComponent<DestroyableComponent>();
 
                     foreach (var skillEntry in SkillComponent.DefaultSkillSet)
@@ -63,13 +58,13 @@ namespace Uchu.World
                             s => s.SkillID == skillEntry.SkillId
                         );
 
-                        // Precalculate all skills to cache them
                         await SkillComponent.CalculateSkillAsync((int) skillEntry.SkillId, true);
+
                         SkillEntries.Add(new NpcSkillEntry
                         {
                             SkillId = skillEntry.SkillId,
-                            Cooldown = 0,
-                            AbilityCooldown = (skillInfo.Cooldown ?? 1) * 1000
+                            Cooldown = false,
+                            AbilityCooldown = skillInfo.Cooldown ?? 1
                         });
                     }
 
@@ -81,40 +76,42 @@ namespace Uchu.World
             });
         }
 
-        /// <summary>
-        /// Calculates the combat for an AI
-        /// </summary>
-        /// <param name="delta">Passed time in milliseconds since last tick</param>
         private async Task CalculateCombat(float delta)
         {
-            if (!Enabled 
-                || !DestructibleComponent.Alive 
-                || QuickBuildComponent != default && QuickBuildComponent.State != RebuildState.Completed)
-                return;
+            if (!Enabled) return;
+
+            if (!DestructibleComponent.Alive) return;
+
+            if (QuickBuildComponent != default && QuickBuildComponent.State != RebuildState.Completed) return;
 
             if (Cooldown <= 0)
             {
                 AbilityDowntime = false;
-                var elapsedCooldown = FrozenCooldown;
-                
-                Cooldown = 1000f;
-                FrozenCooldown = Cooldown;
 
-                foreach (var entry in SkillEntries)
+                Cooldown = 1f;
+
+                foreach (var entry in SkillEntries.Where(s => !s.Cooldown))
                 {
-                    entry.Cooldown -= elapsedCooldown;
-                    if (entry.Cooldown > 0 || AbilityDowntime)
-                        continue;
-
                     var time = await SkillComponent.CalculateSkillAsync((int) entry.SkillId);
-                    if (time == 0)
-                        continue;
+
+                    if (time.Equals(0)) continue;
 
                     AbilityDowntime = true;
-                    entry.Cooldown = entry.AbilityCooldown + time;
-                    
+
+                    entry.Cooldown = true;
+
+                    var _ = Task.Run(async () =>
+                    {
+                        var cooldown = entry.AbilityCooldown + time;
+
+                        await Task.Delay((int) cooldown * 1000);
+
+                        entry.Cooldown = false;
+                    });
+
                     Cooldown += time;
-                    FrozenCooldown = Cooldown;
+
+                    break;
                 }
             }
 
@@ -140,17 +137,15 @@ namespace Uchu.World
         {
             // TODO: Optimize
 
-            if (Stats.Factions.Length == default)
-                return new GameObject[0];
+            if (Stats.Factions.Length == default) return new GameObject[0];
 
             var entries = Zone.Objects.OfType<DestroyableComponent>();
+
             var targets = new List<GameObject>();
 
-            foreach (var entry in entries
-                .Where(e => e.Factions.Length != default && e.Health > 0))
+            foreach (var entry in entries.Where(e => e.Factions.Length != default && e.Health > 0))
             {
-                if (entry.GameObject.TryGetComponent<TriggerComponent>(out _))
-                    continue;
+                if (entry.GameObject.TryGetComponent<TriggerComponent>(out _)) continue;
                 
                 if (Stats.Enemies.Contains(entry.Factions.First()))
                 {

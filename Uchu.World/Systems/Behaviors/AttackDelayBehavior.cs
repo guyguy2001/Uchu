@@ -1,22 +1,13 @@
-using System.IO;
 using System.Threading.Tasks;
-using RakDotNet.IO;
 using Uchu.Core;
 
 namespace Uchu.World.Systems.Behaviors
 {
     public class AttackDelayBehaviorExecutionParameters : BehaviorExecutionParameters
     {
-        public bool ServerSide { get; set; }
+        public bool WaitAndSync { get; set; }
         public uint Handle { get; set; }
         public BehaviorExecutionParameters Parameters { get; set; }
-        
-        public byte[] SyncStream { get; set; }
-
-        public AttackDelayBehaviorExecutionParameters(ExecutionContext context, ExecutionBranchContext branchContext) 
-            : base(context, branchContext)
-        {
-        }
     }
     
     public class AttackDelayBehavior : BehaviorBase<AttackDelayBehaviorExecutionParameters>
@@ -43,47 +34,48 @@ namespace Uchu.World.Systems.Behaviors
             Delay = (int) (delay.Value * 1000);
         }
         
-        protected override void DeserializeStart(BitReader reader, AttackDelayBehaviorExecutionParameters parameters)
+        protected override void DeserializeStart(AttackDelayBehaviorExecutionParameters parameters)
         {
-            parameters.Handle = reader.Read<uint>();
+            parameters.Handle = parameters.Context.Reader.Read<uint>();
             for (var i = 0; i < Intervals; i++)
-                parameters.RegisterHandle<AttackDelayBehaviorExecutionParameters>(parameters.Handle, DeserializeSync,
-                    ExecuteSync);
+                RegisterHandle(parameters.Handle, parameters);
         }
 
-        protected override void DeserializeSync(BitReader reader, AttackDelayBehaviorExecutionParameters parameters)
+        protected override void DeserializeSync(AttackDelayBehaviorExecutionParameters parameters)
         {
-            parameters.Parameters = Action.DeserializeStart(reader, parameters.Context, parameters.BranchContext);
+            parameters.Parameters = Action.DeserializeStart(parameters.Context,
+                parameters.BranchContext);
         }
 
-        protected override void SerializeStart(BitWriter writer, AttackDelayBehaviorExecutionParameters parameters)
+        protected override void SerializeStart(AttackDelayBehaviorExecutionParameters parameters)
         {
             parameters.Handle = parameters.NpcContext.Associate.GetComponent<SkillComponent>().ClaimSyncId();
-            writer.Write(parameters.Handle);
+            parameters.NpcContext.Writer.Write(parameters.Handle);
         }
 
-        protected override void SerializeSync(BitWriter writer, AttackDelayBehaviorExecutionParameters parameters)
+        protected override void SerializeSync(AttackDelayBehaviorExecutionParameters parameters)
         {
-            parameters.Parameters = Action.SerializeStart(writer, parameters.NpcContext,
+            // Copy the context to clear the writer
+            parameters.Parameters = Action.SerializeStart(parameters.NpcContext.Copy(),
                 parameters.BranchContext);
-            parameters.SyncStream = (writer.BaseStream as MemoryStream)?.ToArray();
-            parameters.ServerSide = true;
+            parameters.WaitAndSync = true;
         }
 
-        protected override void ExecuteSync(AttackDelayBehaviorExecutionParameters parameters)
+        protected override Task ExecuteSync(AttackDelayBehaviorExecutionParameters parameters)
         {
-            if (parameters.ServerSide)
+            // Run this async as otherwise the delay can cause the object to be registered as "stuck"
+            Task.Run(async () =>
             {
-                parameters.Schedule( () =>
-                {
-                    parameters.NpcContext.Sync(parameters.SyncStream, parameters.Handle);
-                    Action.ExecuteStart(parameters.Parameters);
-                }, Delay);
-            }
-            else
-            {
-                Action.ExecuteStart(parameters.Parameters);
-            }
+                if (parameters.WaitAndSync)
+                    await Task.Delay(Delay);
+
+                await Action.ExecuteStart(parameters.Parameters);
+
+                if (parameters.WaitAndSync)
+                    parameters.NpcContext.Sync(parameters.Handle);
+            });
+
+            return Task.CompletedTask;
         }
     }
 }

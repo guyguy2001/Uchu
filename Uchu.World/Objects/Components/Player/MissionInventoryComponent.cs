@@ -19,7 +19,7 @@ namespace Uchu.World
         
         private SemaphoreSlim Lock { get; }
         
-        public HashSet<MissionInstance> MissionInstances { get; private set; }
+        public List<MissionInstance> MissionInstances { get; private set; }
 
         public Mission[] GetCompletedMissions()
         {
@@ -66,9 +66,13 @@ namespace Uchu.World
             );
         }
 
-        public bool HasMission(int id)
+        public async Task<bool> HasMissionAsync(int id)
         {
-            return MissionInstances.Select(m => m.MissionId).Contains(id);
+            await using var ctx = new UchuContext();
+
+            return await ctx.Missions.AnyAsync(
+                m => m.CharacterId == GameObject.Id && m.MissionId == id
+            );
         }
 
         public async Task<bool> CanAcceptAsync(int id)
@@ -136,7 +140,7 @@ namespace Uchu.World
                 m => m.CharacterId == GameObject.Id
             ).ToArrayAsync();
 
-            MissionInstances = new HashSet<MissionInstance>();
+            MissionInstances = new List<MissionInstance>();
 
             Player player = GameObject as Player;
 

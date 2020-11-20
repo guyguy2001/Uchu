@@ -7,7 +7,7 @@ using Uchu.Core;
 
 namespace Uchu.World.Systems.Behaviors
 {
-    using SyncDelegate = Action<BitReader>;
+    using SyncDelegate = Func<BitReader, Task>;
     
     public class ExecutionContext
     {
@@ -15,22 +15,22 @@ namespace Uchu.World.Systems.Behaviors
 
         public BehaviorBase Root { get; set; }
 
-        /// <summary>
-        /// Registered handles for sync skill messages
-        /// </summary>
+        public BitReader Reader { get; set; }
+
+        public BitWriter Writer { get; set; }
+
+        public GameObject ExplicitTarget { get; set; }
+
         private List<BehaviorSyncEntry> BehaviorHandles { get; } = new List<BehaviorSyncEntry>();
 
-        public ExecutionContext(GameObject associate)
+        public ExecutionContext(GameObject associate, BitReader reader, BitWriter writer)
         {
             Associate = associate;
+            Reader = reader;
+            Writer = writer;
         }
 
-        /// <summary>
-        /// Syncs a the skill using a suncskill bitstream
-        /// </summary>
-        /// <param name="handle">The behavior handle to sync</param>
-        /// <param name="reader">The sync skill bitstream</param>
-        public void SyncAsync(uint handle, BitReader reader)
+        public async Task SyncAsync(uint handle, BitReader reader)
         {
             BehaviorSyncEntry entry;
             
@@ -46,8 +46,8 @@ namespace Uchu.World.Systems.Behaviors
                 
                 // BehaviorHandles.Remove(entry);
             }
-
-            entry.Delegate(reader);
+            
+            await entry.Delegate(reader);
         }
 
         public void RegisterHandle(uint handle, SyncDelegate @delegate)
