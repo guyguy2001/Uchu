@@ -7,7 +7,7 @@ using BepuPhysics.Constraints;
 
 namespace Uchu.Physics.Callbacks
 {
-    internal struct NarrowPhaseCallbacks : INarrowPhaseCallbacks
+    internal struct NarrowPhaseCallbacks : INarrowPhaseCallbacks // https://github.com/bepu/bepuphysics2/blob/master/Demos/Demos/SimpleSelfContainedDemo.cs#L25 used as reference 
     {
         public Func<CollidableReference, CollidableReference, bool> OnCollision { get; set; }
         

@@ -18,17 +18,10 @@ namespace Uchu.Physics
         internal NarrowPhaseCallbacks NarrowPhaseCallbacks { get; }
         
         internal PoseIntegratorCallbacks PoseIntegratorCallbacks { get; }
-        
-        public List<PhysicsObject> Objects { get; }
 
-        public IEnumerable<PhysicsStatic> Statics => Objects.OfType<PhysicsStatic>();
-
-        public IEnumerable<PhysicsBody> Bodies => Objects.OfType<PhysicsBody>();
-
+        internal PhysicsQueue PhysicsQueue { get; }
         public PhysicsSimulation()
         {
-            Objects = new List<PhysicsObject>();
-            
             Buffer = new BufferPool();
             
             NarrowPhaseCallbacks = new NarrowPhaseCallbacks
@@ -50,37 +43,26 @@ namespace Uchu.Physics
             /*
              * DON'T SLEEP ON THE JOB!
              */
-            var bodies = Bodies.ToArray();
-            
-            foreach (var physicsBody in bodies)
+            foreach (var physicsBody in PhysicsQueue.Objects.OfType<PhysicsBody>().ToArray())
             {
                 if (!physicsBody.Reference.Exists)
                 {
-                    Objects.Remove(physicsBody);
+                    PhysicsQueue.RemoveObject(physicsBody);
                     
                     continue;
                 }
                 
                 physicsBody.Reference.Activity.SleepCandidate = false;
 
-                if (!physicsBody.Reference.Awake)
-                {
-                    Simulation.Awakener.AwakenBody(physicsBody.Handle);
-                }
+                if (!physicsBody.Reference.Awake) Simulation.Awakener.AwakenBody(physicsBody.Handle);
             }
 
             Simulation.Timestep(deltaTime / 1000);
+            PhysicsQueue.TakeStep();
         }
 
-        internal void Register(PhysicsObject obj)
-        {
-            Objects.Add(obj);
-        }
-
-        internal void Release(PhysicsObject obj)
-        {
-            Objects.Remove(obj);
-        }
+        internal void Register(PhysicsObject obj) => PhysicsQueue.AddObject(obj);
+        internal void Release(PhysicsObject obj) => PhysicsQueue.RemoveObject(obj);
         
         private bool HandleCollision(CollidableReference referenceA, CollidableReference referenceB)
         {
@@ -104,7 +86,7 @@ namespace Uchu.Physics
 
         private PhysicsObject FindObject(StaticHandle staticHandle, BodyHandle bodyHandle)
         {
-            foreach (var physicsObject in Bodies)
+            foreach (var physicsObject in PhysicsQueue.Objects.OfType<PhysicsBody>())
             {
                 if (!physicsObject.Reference.Exists) continue;
                 
@@ -114,7 +96,7 @@ namespace Uchu.Physics
                 }
             }
             
-            foreach (var physicsObject in Statics)
+            foreach (var physicsObject in PhysicsQueue.Objects.OfType<PhysicsStatic>())
             {
                 if (!physicsObject.Reference.Exists) continue;
 

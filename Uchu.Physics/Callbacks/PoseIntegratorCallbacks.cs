@@ -4,7 +4,7 @@ using BepuPhysics;
 
 namespace Uchu.Physics.Callbacks
 {
-    internal struct PoseIntegratorCallbacks : IPoseIntegratorCallbacks
+    internal struct PoseIntegratorCallbacks : IPoseIntegratorCallbacks // https://github.com/bepu/bepuphysics2/blob/master/Demos/Demos/SimpleSelfContainedDemo.cs#L125 used as reference
     {
         private Vector3 Gravity { get; }
         
