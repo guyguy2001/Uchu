@@ -146,6 +146,9 @@ If your operating system does not allow you to host a server on any specific net
 1. Open the config file and find the `<Api></Api>` section.
 2. APIs will incrementally bind to network 10000(+) by default. This can be changed by setting the number in the `<Port></Port>` tags.
 
+### Running
+Run `dotnet Uchu.Master.dll` again. This time it should not print errors, and will spawn two `Uchu.Instance.dll` terminals.
+
 ### Infrastructure
 
 #### Single-Sign-On authentication
@@ -169,7 +172,10 @@ These features are experiential and may be unstable. These can be enabled under 
 If you have used an older version of Uchu, you might have to reset your config file to accomodate new additions. Do this by deleting your old config file and have the server generate a new one.
 
 #### Code does not compile
-Make sure the `RakDotNet/` and `InfectedRose/` directories are not empty. If they are you have to pull those submodules with git.
+Make sure the `RakDotNet/` and `InfectedRose/` directories are not empty. If they are you have to pull those submodules with git:
+```
+git submodule update --init --recursive
+```
 
 If they are not empty but the code still does not compile, they might be out of date. Pull those submodules with git to update them.
 
